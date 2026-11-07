@@ -142,7 +142,7 @@ def test_an_error_report_reaches_the_receiver_clean_and_can_be_forgotten(tmp_pat
   row = state["reports"][0]
   assert row["id"] == out["receipt"] and row["brand"] == "gwm" and row["errors"] == len(PRINTS)
   text = json.dumps(state["reports"])
-  for secret in (VIN, DONGLE, SERIAL, "realdata", "47fe527e33", "-22.9068"):
+  for secret in (VIN, DONGLE, SERIAL, "realdata", "47fe527e33", "-25.4429"):
     assert secret not in text
   w.sharer.forget()
   assert w.sharer.step(True, True, []) == "apagado"

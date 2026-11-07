@@ -30,6 +30,16 @@ def branches(available: str | None) -> list[str]:
   return [b for b in (available or "").split(",") if b in OFFERED_BRANCHES]
 
 
+def comma_branches(available: str | None) -> list[str]:
+  """What the comma's own Software page lists under "target branch" (selfdrive/ui/mici/layouts/settings/software.py).
+
+  The Haval build: every branch the updater found, as the comma always did. The generic edition: only what LizPilot
+  offers, so a tester in another car never picks a build that forces the Haval, even if one comes back to the
+  repository (QA-01, A1; LIZ-04)."""
+  found = [b for b in (available or "").split(",") if b]
+  return [b for b in found if b in OFFERED_BRANCHES] if edition.EDITION == "generic" else found
+
+
 def describe(desc: str | None) -> dict:
   # "version / branch / commit / date"
   parts = [p.strip() for p in (desc or "").split(" / ")]

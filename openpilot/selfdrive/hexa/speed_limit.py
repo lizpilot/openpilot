@@ -4,7 +4,7 @@ mapd (github.com/pfeiferj/mapd, MIT) reads OpenStreetMap offline on the comma an
 speed limit (m/s, direction of travel included) and the next one ahead. This file:
 - decides when mapd runs: the option on, and the binary on the disk matching MAPD_SHA256 (checked when it runs, not only when
   it was installed: a binary of another schema must never run);
-- installs mapd: the CTO's own build of mapd 8e5eee6, pinned by URL and sha256 (both empty until the CTO fills them);
+- installs mapd: our own build of mapd 8e5eee6 with 25 msgq reader slots (MAP-02), pinned by URL and sha256;
 - decodes mapd's messages from their raw bytes, so a message of another schema is dropped, never raised (decode());
 - warns, from selfdrived, when the car goes above the limit plus the tolerance of Res. CONTRAN 798/2020 (7 km/h measured up to
   100 km/h, 7% above), only on a limit that held for SETTLE_S, once per overshoot;
@@ -27,11 +27,14 @@ OFF, SHOW, WARN, ADJUST = 0, 1, 2, 3  # ADJUST warns too, and takes the ACC's se
 
 MAPD_DIR = Path("/data/lizpilot/mapd")
 MAPD_BIN = MAPD_DIR / "mapd"
-# The CTO builds mapd 8e5eee6 (the schema in cereal/custom.capnp) on the Mac and publishes it with its hash (owner, 05/11:
+# We build mapd 8e5eee6 (the schema in cereal/custom.capnp) on the Mac and publish it with its hash (owner, 05/11:
 # "melhor né, aí temos controle"). Empty: nothing is downloaded and nothing runs.
-MAPD_VERSION = "8e5eee6"
-MAPD_URL = "https://github.com/CPontes/openpilot/releases/download/mapd-8e5eee6/mapd"  # CTO build of pfeiferj/mapd 8e5eee6 (BUILD-mapd.md)
-MAPD_SHA256 = "b8b6c8a2180df22833201023e725da990cbc4ec689fdad870fe9276ea9a126fa"  # reproducible: two clean builds, same hash
+# 8e5eee6 as published talks to a msgq of 15 reader slots, and ours has 25 (msgq a95f3c1): its queue header was 240 bytes off,
+# and loggerd never read a mapdOut (MAP-01). The build carries tools/lizpilot/mapd/0001-msgq-25-reader-slots.patch (MAP-02).
+# Back: mapd-8e5eee6, b8b6c8a2180df22833201023e725da990cbc4ec689fdad870fe9276ea9a126fa (the one that never talked)
+MAPD_VERSION = "8e5eee6-msgq25"
+MAPD_URL = "https://github.com/CPontes/openpilot/releases/download/mapd-8e5eee6-msgq25/mapd"  # tools/lizpilot/mapd/README.md
+MAPD_SHA256 = "7305d508e67e738c17b9a9dbbcb5a16076026615f6c233bb1340675ac88abb8b"  # reproducible: two clean builds, same hash
 MAX_BINARY = 64 * 1024 * 1024
 INSTALL_FREE_BYTES = 200 * 1024 * 1024
 

@@ -1838,8 +1838,8 @@ def _nav_panel(panel, results=None):
 
   def get(url):
     urls.append(url)
-    return results if results is not None else [{"lat": "-22.9035", "lon": "-43.1092", "display_name": "Icaraí, Niterói"}]
-  panel.backend.navigator = nav.Navigator(panel.store, get_json=get, mono=lambda: panel.now, position=lambda: (-22.903512, -43.109187))
+    return results if results is not None else [{"lat": "-25.4429", "lon": "-49.2397", "display_name": "Jardim Botânico, Curitiba"}]
+  panel.backend.navigator = nav.Navigator(panel.store, get_json=get, mono=lambda: panel.now, position=lambda: (-25.442912, -49.239713))
   panel.store.put("NavigationEnabled", True)
   return urls
 
@@ -1853,14 +1853,14 @@ def test_nav_needs_a_paired_phone(panel):
 def test_nav_search_go_save_and_stop(panel):
   urls = _nav_panel(panel)
   token = panel.pair()
-  status, body = panel.json("/api/nav/search", {"q": "icaraí"}, token)
-  assert status == 200 and body["results"][0]["name"] == "Icaraí, Niterói" and len(urls) == 1
+  status, body = panel.json("/api/nav/search", {"q": "jardim botânico"}, token)
+  assert status == 200 and body["results"][0]["name"] == "Jardim Botânico, Curitiba" and len(urls) == 1
   place = body["results"][0]
   assert panel.json("/api/nav/go", {**place}, token)[0] == 200
   state = panel.json("/api/nav", token=token)[1]
-  assert state["enabled"] and state["destination"]["place_name"] == "Icaraí, Niterói" and state["route"] == {"active": False}
-  assert state["near"] == [-22.9035, -43.1092]  # the car on the phone's Mapa, to 10 m
-  assert panel.store.get("HexaWebAudit")[-1]["event"] == "nav_go" and "Icaraí" not in str(panel.store.get("HexaWebAudit")[-1])
+  assert state["enabled"] and state["destination"]["place_name"] == "Jardim Botânico, Curitiba" and state["route"] == {"active": False}
+  assert state["near"] == [-25.4429, -49.2397]  # the car on the phone's Mapa, to 10 m
+  assert panel.store.get("HexaWebAudit")[-1]["event"] == "nav_go" and "Jardim" not in str(panel.store.get("HexaWebAudit")[-1])
   assert panel.json("/api/nav/place", {**place, "name": "Praia"}, token)[1]["places"][0]["name"] == "Praia"
   assert panel.json("/api/nav/stop", {}, token) == (200, {"ok": True})
   assert panel.json("/api/nav", token=token)[1]["destination"] is None

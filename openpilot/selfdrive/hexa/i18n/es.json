@@ -1178,6 +1178,12 @@
  "Apaga só a cópia deste celular. No comma fica tudo, e ele manda de novo na próxima vez.": "Borra solo la copia de este celular. En el comma queda todo, y lo envía de nuevo la próxima vez.",
  "Apagar dados deste celular": "Borrar los datos de este celular",
  "Apagar viagens, marcas e Missões guardadas neste celular? No comma fica tudo.": "¿Borrar los viajes, marcas y Misiones guardados en este celular? En el comma queda todo.",
+ "Este comma não reconhece este celular": "Este comma no reconoce este celular",
+ "Pode ser outro comma no mesmo endereço, ou este comma esqueceu o celular. Nada foi apagado: o que está guardado aqui continua, só leitura.": "Puede ser otro comma en la misma dirección, o este comma olvidó el celular. No se borró nada: lo guardado aquí sigue, solo lectura.",
+ "Apagar e parear de novo": "Borrar y emparejar de nuevo",
+ "Este comma não reconhece este celular: só leitura.": "Este comma no reconoce este celular: solo lectura.",
+ "não reconhece este celular": "no reconoce este celular",
+ "Apagar viagens, marcas e Missões guardadas neste celular e parear de novo? No comma fica tudo.": "¿Borrar los viajes, marcas y Misiones guardados en este celular y emparejar de nuevo? En el comma queda todo.",
  "Dados deste celular apagados.": "Datos de este celular borrados.",
  "Dados neste celular": "Datos en este celular",
  "Esta cópia fica presa a este endereço. Se o endereço do comma mudar, ela some: abra pelo lizpilot.local.": "Esta copia queda atada a esta dirección. Si la dirección del comma cambia, desaparece: ábrala por lizpilot.local.",
@@ -1937,5 +1943,13 @@
  "Andando, abrir o Mapa pergunta uma vez por viagem se é o passageiro": "En marcha, abrir el Mapa pregunta una vez por viaje si eres el pasajero",
  "«Rever viagem» no visual do Início: quem dirigiu em três cores, e as marcas e os desengates com a hora": "«Revisar viaje» con el aspecto del Inicio: quién condujo en tres colores, y las marcas y las desconexiones con la hora",
  "Trilha nova «Calibragem do veículo»: o que o comma aprendeu do carro (câmera, direção, torque, rodas × GPS) se marca pelo log": "Ruta nueva «Calibración del vehículo»: lo que el comma aprendió del coche (cámara, dirección, par, ruedas × GPS) se marca por el log",
- "O comma responde ao app do LizPilot se é o comma daquele celular, sem mandar o token; nada muda ao dirigir": "El comma le dice a la app de LizPilot si es el comma de ese celular, sin enviar el token; nada cambia al conducir"
+ "O comma responde ao app do LizPilot se é o comma daquele celular, sem mandar o token; nada muda ao dirigir": "El comma le dice a la app de LizPilot si es el comma de ese celular, sin enviar el token; nada cambia al conducir",
+ "O mapd refeito para o limite da via, e nada se apaga sem perguntar": "El mapd rehecho para el límite de la vía, y nada se borra sin preguntar",
+ "Limite da via pelo mapa: o mapd foi refeito para conversar com o openpilot de hoje; o anterior rodava, mas o limite não chegava ao openpilot": "Límite de la vía por el mapa: el mapd se rehízo para hablar con el openpilot de hoy; el anterior corría, pero el límite no llegaba al openpilot",
+ "Depois de atualizar, num Wi-Fi e sem o carro ligado, ponha o «limite da via pelo mapa» em «mostrar» ou «avisar»": "Después de actualizar, en un Wi-Fi y con el auto apagado, pon el «límite de la vía por el mapa» en «mostrar» o «avisar»",
+ "Então toque em «Instalar o mapd», uma vez; até lá, o limite não aparece": "Luego toca «Instalar mapd», una vez; hasta entonces, el límite no aparece",
+ "Com o limite chegando, «ajustar» pode mudar a velocidade do ACC: comece por «mostrar» ou «avisar»": "Con el límite llegando, «ajustar» puede cambiar la velocidad del ACC: empieza por «mostrar» o «avisar»",
+ "Se o comma no endereço não reconhece este celular, o celular pergunta antes de apagar o histórico e o pareamento; nada muda ao dirigir": "Si el comma en la dirección no reconoce este celular, el celular pregunta antes de borrar el historial y el emparejamiento; nada cambia al conducir",
+ "Na edição para todos os carros, a tela Software do comma só oferece a branch lizpilot; no Haval, nada muda": "En la edición para todos los autos, la pantalla Software del comma solo ofrece la branch lizpilot; en el Haval no cambia nada",
+ "Os testes usam lugares públicos, e o teste que mantém o painel fora dos processos de dirigir voltou a passar; nada muda ao dirigir": "Las pruebas usan lugares públicos, y la prueba que mantiene el panel fuera de los procesos de conducción vuelve a pasar; nada cambia al conducir"
 }

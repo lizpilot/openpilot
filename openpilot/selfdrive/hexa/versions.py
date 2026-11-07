@@ -20,7 +20,16 @@ class Release:
 
 
 RELEASES: tuple[Release, ...] = (
-  Release("", "06/11", "9fe1215", "O Mapa em três passos e a aba Navegar",
+  Release("", "07/11", "9fe1215", "O mapd refeito para o limite da via, e nada se apaga sem perguntar",
+          ("Limite da via pelo mapa: o mapd foi refeito para conversar com o openpilot de hoje; o anterior rodava, mas o limite não chegava ao openpilot",
+           "Depois de atualizar, num Wi-Fi e sem o carro ligado, ponha o «limite da via pelo mapa» em «mostrar» ou «avisar»",
+           "Então toque em «Instalar o mapd», uma vez; até lá, o limite não aparece",
+           "Com o limite chegando, «ajustar» pode mudar a velocidade do ACC: comece por «mostrar» ou «avisar»",
+           "Se o comma no endereço não reconhece este celular, o celular pergunta antes de apagar o histórico e o pareamento; nada muda ao dirigir",
+           "Na edição para todos os carros, a tela Software do comma só oferece a branch lizpilot; no Haval, nada muda",
+           "Os testes usam lugares públicos, e o teste que mantém o painel fora dos processos de dirigir voltou a passar; nada muda ao dirigir"),
+          driving=True),
+  Release("4837aa1", "06/11", "9fe1215", "O Mapa em três passos e a aba Navegar",
           ("Mapa: Para onde → É aqui? → Quem mostra o caminho; um lugar salvo ou recente vai direto à escolha, com a última primeiro",
            "Navegar: com uma rota, ao sair andando o Início mostra a próxima manobra, a chegada e um minimapa; só mostra, sem nada para tocar",
            "Andando, abrir o Mapa pergunta uma vez por viagem se é o passageiro",

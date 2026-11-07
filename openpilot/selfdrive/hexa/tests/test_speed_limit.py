@@ -188,12 +188,12 @@ def test_install_checks_the_hash_and_writes_for_good(tmp_path, monkeypatch):
   monkeypatch.setattr(sl.os, "fsync", lambda fd: synced.append(fd) or real_fsync(fd))
   assert sl.install("https://x/mapd", good, dest, fetch=lambda u: data) == good
   assert synced and dest.read_bytes() == data and os.access(dest, os.X_OK) and sl.binary_ok(dest, good)
-  assert json.loads((dest.parent / "VERSION").read_text()) == {"version": "8e5eee6", "sha256": good}
+  assert json.loads((dest.parent / "VERSION").read_text()) == {"version": sl.MAPD_VERSION, "sha256": good}
 
 
 def test_the_shipped_pins_are_empty_or_complete():
   assert (sl.MAPD_URL == "" and sl.MAPD_SHA256 == "") or (sl.MAPD_URL.startswith("https://") and len(sl.MAPD_SHA256) == 64)
-  assert sl.MAPD_VERSION == "8e5eee6"
+  assert sl.MAPD_VERSION == "8e5eee6-msgq25"  # the source commit of the schema, plus our msgq patch (MAP-02)
 
 
 # *** downloads: car off, unmetered network, free space, and stopped when the car turns on (finding 5) ***
@@ -241,7 +241,7 @@ def test_the_download_menu_has_every_area_offered_and_valid_rows():
       assert lat % 2 == 0 and lon0 % 2 == 0 and lon1 % 2 == 0 and lon0 < lon1
       assert box["min_lat"] - 2 <= lat <= box["max_lat"] and box["min_lon"] - 2 <= lon0 and lon1 <= box["max_lon"] + 2
   rj = menu["br_state"]["RJ"]["bounding_box"]
-  for lat, lon in ((-22.9068, -43.1729), (-22.8832, -43.1036)):  # Rio and Niterói
+  for lat, lon in ((-22.9519, -43.2105), (-23.1394, -44.1689)):  # Rio (Cristo Redentor) and Ilha Grande
     assert rj["min_lat"] < lat < rj["max_lat"] and rj["min_lon"] < lon < rj["max_lon"]
 
 

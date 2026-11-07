@@ -547,6 +547,12 @@
       <div class="title" data-t>Sem o comma: só leitura</div>
       <div class="desc" id="offlineDesc"></div>
     </div>
+    <div class="card att stack hidden" id="strangerCard" role="alert" style="gap:8px">
+      <div class="title" data-t>Este comma não reconhece este celular</div>
+      <div class="desc" data-t>Pode ser outro comma no mesmo endereço, ou este comma esqueceu o celular. Nada foi apagado: o que está guardado aqui continua, só leitura.</div>
+      <button class="btn" id="strangerRetry" type="button" data-t>Tentar de novo</button>
+      <button class="link danger" id="strangerPair" type="button" data-t>Apagar e parear de novo</button>
+    </div>
 
     <!-- Início -->
     <div data-view="inicio">
@@ -1128,6 +1134,7 @@ const $ = (id) => document.getElementById(id);
 const { t, tf } = LP;
 const L = () => LP.locale;
 let token = null;
+let stranger = false;  // a 401: the comma here doesn't know this phone (unknownHere). Page memory only: a reload asks the comma again
 try { token = localStorage.getItem("hexaToken"); } catch (e) {}
 let state = null, titles = {};
 let marksState = { reasons: [], marks: [], pending: 0 };
@@ -1163,7 +1170,7 @@ const SEND_TIMEOUT_MS = 30000;  // share.REPORT_TIMEOUT: up to 4 requests of 6 s
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
 function store(k, v) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }
 function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-function saveToken(v) { token = v; store("hexaToken", v); if (!v) wipeBase(); }  // unpaired: the phone's copy leaves the phone too
+function saveToken(v) { token = v; store("hexaToken", v); setStranger(false); if (!v) wipeBase(); }  // unpaired: the phone's copy leaves the phone too
 function toast(msg) { const e = $("toast"); e.textContent = msg; e.classList.add("show"); clearTimeout(e._t); e._t = setTimeout(() => e.classList.remove("show"), 2800); }
 const hhmm = (s) => new Date(s * 1000).toLocaleTimeString(L(), { hour: "2-digit", minute: "2-digit" });
 const hhmmss = (s) => new Date(s * 1000).toLocaleTimeString(L(), { hour: "2-digit", minute: "2-digit", second: "2-digit" });
@@ -1291,7 +1298,7 @@ const VIEW_KIND = { inicio: "state", viagens: "trips", missoes: "missions", pont
 const TRIPS = "trips", MISSIONS = "missions", STATE = "state";
 function hourOf(at) { return at ? (isToday(at / 1000) ? hhmm(at / 1000) : dayTime(at / 1000)) : "—"; }
 function baseWhen(kind) { return hourOf(syncAt[kind || VIEW_KIND[view] || "state"] || 0); }
-function roReason() { return tf("Sem o comma: só leitura, dados de {hora}. Conecte o celular à rede do comma para mudar.", { hora: baseWhen() }); }
+function roReason() { return stranger ? t("Este comma não reconhece este celular: só leitura.") : tf("Sem o comma: só leitura, dados de {hora}. Conecte o celular à rede do comma para mudar.", { hora: baseWhen() }); }
 function synced(kind, ep) {  // a real 200 for this collection: its hour, kept at most once a minute
   if (ep !== DB.epoch()) return;
   syncAt[kind] = Date.now();
@@ -1349,6 +1356,7 @@ const RO_CMDS = '#fab, #tripHide, #addRadar, #addSignal, #addBump, #radarUpdate,
 
 // ----- network: nothing old passes as current, and nothing can be touched that wouldn't reach the comma -----
 async function api(path, body, waitMs) {  // waitMs: a request the comma answers only after the internet (ERR-01)
+  if (stranger && path !== "/api/pair") return { status: 0, data: { error: roReason() } };  // this phone's token goes nowhere until the person chooses
   if (body !== undefined && path !== "/api/pair" && path !== "/api/logout" && LPL.readOnly(online, fromBase)) {  // read only: nothing is sent
     failures = 0; refresh();
     toast(roReason()); return { status: 0, data: { error: roReason() } };
@@ -1361,14 +1369,30 @@ async function api(path, body, waitMs) {  // waitMs: a request the comma answers
   if (ctl) opts.signal = ctl.signal;
   try { r = await fetch(path, opts); } catch (e) { setOnline(false); return { status: 0, data: { error: t("Sem conexão com o comma: nada foi salvo.") } }; }
   finally { clearTimeout(timer); }
+  if (stranger) return { status: 0, data: { error: roReason() } };  // sent before a 401 came back: that answer stands
   setOnline(true);
   let data = {};
   try { data = await r.json(); } catch (e) {}
   if (data && typeof data.error === "string") data.error = t(data.error);
   if (data && typeof data.message === "string") data.message = t(data.message);
   if (ep !== DB.epoch()) return { status: 0, data: { error: t("Não foi possível.") }, ep };  // asked before the copy was erased: dropped
-  if (r.status === 401) { saveToken(null); show("pair"); }
+  if (LPL.strangerAnswer(r.status, path)) unknownHere();
   return { status: r.status, data, ep };
+}
+// A 401: the comma at this address doesn't know this phone. Another comma at the same address, or this one forgot the phone.
+// Nothing leaves the phone and nothing is erased on that alone: read only, and the person chooses (CTO review, 06/11).
+function setStranger(on) {
+  stranger = on;
+  $("strangerCard").classList.toggle("hidden", !on);
+  $("offlineCard").classList.toggle("hidden", on || online);
+}
+function unknownHere() {
+  if (stranger) return;
+  clearTimeout(pollTimer);
+  setOnline(false);  // read only: no command reaches it
+  setStranger(true);
+  $("conn").textContent = t("não reconhece este celular");
+  if ($("app").classList.contains("hidden")) show("app");
 }
 
 function setOnline(on) {
@@ -1377,14 +1401,14 @@ function setOnline(on) {
     online = on;
     document.body.classList.toggle("offline", !on);
     document.body.classList.toggle("readonly", LPL.readOnly(on, fromBase));
-    $("offlineCard").classList.toggle("hidden", on);
+    $("offlineCard").classList.toggle("hidden", on || stranger);
     renderCarState();
     if (view === "inicio" && driving) renderDrive();
   }
   if (!on) {
     $("tabs").querySelector('[data-go="pontos"]').classList.remove("near");
     renderOffline();
-    $("conn").textContent = t("sem conexão");
+    $("conn").textContent = stranger ? t("não reconhece este celular") : t("sem conexão");
   }
 }
 function renderOffline() {  // each collection with its own hour: one old list never passes as current
@@ -1442,7 +1466,7 @@ function refreshView() {
 
 function schedule() {
   clearTimeout(pollTimer);
-  if (document.hidden || !token) return;
+  if (document.hidden || !token || stranger) return;
   pollTimer = setTimeout(refresh, online ? POLL_MS : Math.min(POLL_MS * 2 ** failures, POLL_MAX_MS));
 }
 
@@ -5043,6 +5067,11 @@ $("wipeBtn").addEventListener("click", async () => {
   if (!confirm(t("Apagar viagens, marcas e Missões guardadas neste celular? No comma fica tudo."))) return;
   await wipeBase(); toast(t("Dados deste celular apagados.")); renderBase(); renderMissionCard(); renderReadyMissions();
   tripsAt = 0; missionsAt = 0; if (token && online && !fromBase) refresh();
+});
+$("strangerRetry").addEventListener("click", () => { setStranger(false); failures = 0; refresh(); });
+$("strangerPair").addEventListener("click", () => {  // the only way a 401 erases: the person asked, and said yes
+  if (!confirm(t("Apagar viagens, marcas e Missões guardadas neste celular e parear de novo? No comma fica tudo."))) return;
+  clearTimeout(pollTimer); saveToken(null); show("pair");
 });
 $("logoutBtn").addEventListener("click", async () => {
   if (!confirm(t("Desconectar este celular? Para voltar, será preciso parear de novo."))) return;

@@ -270,8 +270,8 @@ def test_a_removed_own_point_stops_warning():
 
 
 def test_key_does_not_carry_the_position():
-  k = radars.key(-22.90312, -43.17231)
-  assert "22" not in k[:2] and "." not in k and "," not in k and len(k) == 12
+  k = radars.key(-25.44291, -49.23972)
+  assert "25" not in k[:2] and "." not in k and "," not in k and len(k) == 12
 
 
 def test_taken_sees_this_direction_only():

@@ -418,6 +418,39 @@ def test_unpairing_leaves_no_list_of_drives_on_the_phone():
   assert set(json.loads(keys)) == want  # data only: the language and the view stay
 
 
+def test_a_401_erases_nothing_without_asking():
+  # CTO review, 06/11 (patch 0002): another comma at the same address answers 401 to this phone's token. That alone must not
+  # erase the history and the pairing: read only, and the person chooses between trying again and erasing to pair again
+  for path in ("/api/state", "/api/trips", "/api/missions", "/api/marks"):
+    assert run("strangerAnswer", 401, path) is True
+  assert run("strangerAnswer", 401, "/api/pair") is False and run("strangerAnswer", 401, "/api/logout") is False  # their own answers
+  assert not any(run("strangerAnswer", s, "/api/state") for s in (0, 200, 403, 404, 429, 500, 503))
+  html = (LOGIC.parent / "index.html").read_text()
+  api = html[html.index("async function api(path, body, waitMs)"):]
+  api = api[:api.index("\n}\n")]
+  assert "saveToken(" not in api and "wipeBase(" not in api and 'show("pair")' not in api
+  assert "if (LPL.strangerAnswer(r.status, path)) unknownHere();" in api
+  # once refused, this phone's token goes nowhere until the person chooses: the guard comes before the request
+  assert api.index('if (stranger && path !== "/api/pair") return') < api.index("fetch(path, opts)")
+  assert "if (document.hidden || !token || stranger) return;" in html  # and no polling either
+  # an answer to a request sent before the 401 came back doesn't make the comma "online" again
+  assert api.index("fetch(path, opts)") < api.index("if (stranger) return", api.index("fetch(path, opts)")) < api.index("setOnline(true)")
+  assert '$("offlineCard").classList.toggle("hidden", on || stranger);' in html  # one card at a time: this one says read only
+  here = html[html.index("function unknownHere() {"):]
+  here = here[:here.index("\n}\n")]
+  assert "setOnline(false)" in here and "setStranger(true)" in here and "saveToken" not in here and "wipeBase" not in here
+  # the only ways that erase: the two buttons, each after a yes
+  erase = [i for i in range(len(html)) if html.startswith("saveToken(null)", i)]
+  assert len(erase) == 2
+  for i in erase:
+    handler = html[html.rindex("addEventListener(\"click\"", 0, i):i]
+    assert "if (!confirm(t(" in handler
+  assert html.index('$("strangerPair").addEventListener') < erase[0] < html.index('$("logoutBtn").addEventListener') < erase[1]
+  assert html.count("wipeBase()") == 3  # its definition, saveToken(null) and "Apagar dados", which asks first too
+  card = html[html.index('id="strangerCard"'):html.index('id="strangerPair"')]
+  assert 'role="alert"' in card and 'id="strangerRetry"' in card and "Nada foi apagado" in card
+
+
 def test_no_path_yet_is_not_no_gps():
   # right after an update the phone has summaries from its cache and the comma is still reading the drives
   drive_read = {"summary": {"km": 5.}}
@@ -1323,23 +1356,23 @@ def test_the_page_behind_a_layer_stays_put():
 
 
 def test_the_map_centres_and_reads_back_the_place_under_the_pin():
-  v = run("mapCenter", -22.9035, -43.1091, 16, 430, 600)
+  v = run("mapCenter", -25.3848, -49.2763, 16, 430, 600)
   assert v["z"] == 16 and abs(v["size"] - 256) < 1e-6
-  js = "const L = require(" + json.dumps(str(LOGIC)) + ");" + """ const v = L.mapCenter(-22.9035, -43.1091, 16.5, 430, 600);
-  const c = L.mapXY(v, -22.9035, -43.1091); const back = L.mapLatLon(v, c[0], c[1]); const moved = L.mapLatLon(v, c[0] + 100, c[1]);
+  js = "const L = require(" + json.dumps(str(LOGIC)) + ");" + """ const v = L.mapCenter(-25.3848, -49.2763, 16.5, 430, 600);
+  const c = L.mapXY(v, -25.3848, -49.2763); const back = L.mapLatLon(v, c[0], c[1]); const moved = L.mapLatLon(v, c[0] + 100, c[1]);
   process.stdout.write(JSON.stringify({ c, back, moved }));"""
   out = json.loads(subprocess.run([NODE, "-e", js], capture_output=True, text=True, timeout=30, check=True).stdout)
   assert [round(x) for x in out["c"]] == [215, 300]  # the centre is the middle of the box
-  assert out["back"] == [-22.9035, -43.1091] and out["moved"][1] > -43.1091  # dragged right of the middle: further east
-  assert 1100 < run("distanceM", [-22.9035, -43.1091], [-22.9135, -43.1091]) < 1120  # 0.01° of latitude, ~1.1 km
+  assert out["back"] == [-25.3848, -49.2763] and out["moved"][1] > -49.2763  # dragged right of the middle: further east
+  assert 1100 < run("distanceM", [-25.3848, -49.2763], [-25.3948, -49.2763]) < 1120  # 0.01° of latitude, ~1.1 km
 
 
 def test_a_place_reads_short():
-  # owner's print, 05/11: the whole Nominatim name over the title
-  long = "Estrada Leopoldo Fróes, São Francisco, Região Praias da Baía, Niterói, Rio de Janeiro, Região Sudeste, 24360-022, Brasil"
-  assert run("shortPlace", long) == {"title": "Estrada Leopoldo Fróes", "sub": "São Francisco, Niterói"}
+  # the shape Nominatim gave on 05/11, with a public place and a placeholder CEP: the whole name over the title
+  long = "Jardim Botânico de Curitiba, Rua Engenheiro Ostoja Roguski, Região Geográfica Imediata de Curitiba, Curitiba, Paraná, Região Sul, 00000-000, Brasil"
+  assert run("shortPlace", long) == {"title": "Jardim Botânico de Curitiba", "sub": "Rua Engenheiro Ostoja Roguski, Curitiba"}
   assert run("shortPlace", "Praia de Icaraí, Icaraí, Niterói") == {"title": "Praia de Icaraí", "sub": "Icaraí, Niterói"}
-  assert run("shortPlace", "-22.90350, -43.10910") == {"title": "-22.90350, -43.10910", "sub": ""}
+  assert run("shortPlace", "-25.38480, -49.27630") == {"title": "-25.38480, -49.27630", "sub": ""}
   assert [run("maneuverKind", *a) for a in [("turn", "right"), ("turn", "slight left"), ("arrive", ""), ("turn", "uturn"), ("depart", "")]] == \
     ["right", "slight-left", "arrive", "uturn", "straight"]
 
@@ -1487,11 +1520,11 @@ def test_ir_para_ca_asks_which_app_every_time():
   # owner, 05/11: Waze or Google Maps navigate (free, no key); the comma's route only with its navigation on; "toda vez [...] pergunta"
   assert run("navTargets", False) == ["waze", "google"] and run("navTargets", True) == ["waze", "google", "comma"]
   assert run("navChoice", "waze", True) is None  # NAV_REMEMBER is off: never straight on
-  assert run("navLink", "waze", -22.9035, -43.1091) == "https://waze.com/ul?ll=-22.903500%2C-43.109100&navigate=yes"
-  assert run("navLink", "google", -22.9035, -43.1091) == \
-    "https://www.google.com/maps/dir/?api=1&destination=-22.903500%2C-43.109100&travelmode=driving"
-  rec = run("navRecent", [{"name": "A", "latitude": -22.9, "longitude": -43.1}, {"name": "B", "latitude": -22.8, "longitude": -43.0}],
-            {"name": "A de novo", "latitude": -22.90001, "longitude": -43.10001})
+  assert run("navLink", "waze", -25.3848, -49.2763) == "https://waze.com/ul?ll=-25.384800%2C-49.276300&navigate=yes"
+  assert run("navLink", "google", -25.3848, -49.2763) == \
+    "https://www.google.com/maps/dir/?api=1&destination=-25.384800%2C-49.276300&travelmode=driving"
+  rec = run("navRecent", [{"name": "A", "latitude": -25.4, "longitude": -49.3}, {"name": "B", "latitude": -25.3, "longitude": -49.2}],
+            {"name": "A de novo", "latitude": -25.40001, "longitude": -49.30002})
   assert [r["name"] for r in rec] == ["A de novo", "B"]  # the same place once, the newest first
   keys = json.loads(subprocess.run([NODE, "-e", f"process.stdout.write(JSON.stringify(require({json.dumps(str(LOGIC))}).DATA_KEYS))"],
                                    capture_output=True, text=True, timeout=30, check=True).stdout)

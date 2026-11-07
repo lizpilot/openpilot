@@ -347,8 +347,8 @@
     const h = Math.sin(dl / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dn / 2) ** 2;
     return Math.round(2 * 6371000 * Math.asin(Math.sqrt(h)));
   }
-  // The search's long name, short: the first two parts, then the city. Nominatim gives "Estrada Leopoldo Fróes, São Francisco,
-  // Região Praias da Baía, Niterói, Rio de Janeiro, Região Sudeste, 24360-022, Brasil" (owner's print, 05/11).
+  // The search's long name, short: the first two parts, then the city. Nominatim gives names like "Jardim Botânico de Curitiba,
+  // Rua Engenheiro Ostoja Roguski, Região Geográfica Imediata de Curitiba, Curitiba, Paraná, Região Sul, 00000-000, Brasil".
   const PLACE_DROP = /^(brasil|brazil|regi[ãa]o\b.*|\d{5}-?\d{3}|\d{8}|região metropolitana.*|microrregião.*|mesorregião.*)$/i;
   const STATES = new Set(["acre", "alagoas", "amapá", "amazonas", "bahia", "ceará", "distrito federal", "espírito santo", "goiás", "maranhão", "mato grosso",
     "mato grosso do sul", "minas gerais", "pará", "paraíba", "paraná", "pernambuco", "piauí", "rio de janeiro", "rio grande do norte", "rio grande do sul",
@@ -1148,10 +1148,13 @@
   function mapCount(keys) { return new Set((keys || []).map(String).filter((k) => k.startsWith("path:")).map((k) => k.slice(5).split("#")[0])).size; }
   // Read only: without the comma, or before the first answer of a page opened from the copy. Commands wait for the comma.
   function readOnly(online, fromCopy) { return !online || !!fromCopy; }
+  // a 401 says the comma at this address doesn't know this phone: it can be another comma at the same address, so it
+  // erases nothing by itself (CTO review, 06/11). Pairing and "Desconectar" have their own answers
+  function strangerAnswer(status, path) { return status === 401 && path !== "/api/pair" && path !== "/api/logout"; }
   // what "Apagar dados deste celular" takes from localStorage besides the copy: data, never the language or the view
   const DATA_KEYS = ["lpTrips", "lpMissionSnap", "lpCopEvents", "lpCopAnswers", "lpCopTally", "lpNavRecent"];  // the copilot's events of the drive, and the answers
 
-  root.LPL = { approvalReport, groupPending, quietEvent, mutedKinds, EV_KINDS, eventStep, pointPassed, eventsMerge, logEvents, driveStart, reviewList, answerKeep, eventMission, copilotView, eventAge, eventStage, eventClock, EV_MISSIONS, EV_REASON, EV_LIVE_S, EV_RECENT_S, EV_KEEP, versionList, versionChips, VERSION_CHIPS, copilotMoment, copilotOrder, copilotNow, copilotGate, stopClock, tripAnswers, canTake, isRoute, routeKeys, missionHistory, missionsChecked, checkedUntil, queueAdd, applyQueue, queuedKeys, QUEUE_ACTIONS, ADVANCED, COP_LONG_S, COP_STOP_KMH, missionAuto, missionProgress, missionLevel, missionOrder, missionTrails, missionDiff, kpiOf, kpiDelta, kpis, tripVsAverage, versionCompare, kpiWeeks, KPI_BETTER, VERSION_MIN_KM, KPI_MIN_KM, WOBBLE_MIN_S, FIXED_HOST, addressPlan, tripSplit, listed, currentTrip, pathSettled, pathSecond, mergeMarks, rideClock, rideWho, applyTrips, applyWhole, since, keepPath, rideKeys, rideKeep, rideOrder, mapCount, RIDE_KEEP, readOnly, DATA_KEYS, weekTotal, totals, monthStart, versionOf, versions, idle, fold, tripStart, tripMarks, daysAgo, dayKey,
+  root.LPL = { approvalReport, groupPending, quietEvent, mutedKinds, EV_KINDS, eventStep, pointPassed, eventsMerge, logEvents, driveStart, reviewList, answerKeep, eventMission, copilotView, eventAge, eventStage, eventClock, EV_MISSIONS, EV_REASON, EV_LIVE_S, EV_RECENT_S, EV_KEEP, versionList, versionChips, VERSION_CHIPS, copilotMoment, copilotOrder, copilotNow, copilotGate, stopClock, tripAnswers, canTake, isRoute, routeKeys, missionHistory, missionsChecked, checkedUntil, queueAdd, applyQueue, queuedKeys, QUEUE_ACTIONS, ADVANCED, COP_LONG_S, COP_STOP_KMH, missionAuto, missionProgress, missionLevel, missionOrder, missionTrails, missionDiff, kpiOf, kpiDelta, kpis, tripVsAverage, versionCompare, kpiWeeks, KPI_BETTER, VERSION_MIN_KM, KPI_MIN_KM, WOBBLE_MIN_S, FIXED_HOST, addressPlan, tripSplit, listed, currentTrip, pathSettled, pathSecond, mergeMarks, rideClock, rideWho, applyTrips, applyWhole, since, keepPath, rideKeys, rideKeep, rideOrder, mapCount, RIDE_KEEP, readOnly, strangerAnswer, DATA_KEYS, weekTotal, totals, monthStart, versionOf, versions, idle, fold, tripStart, tripMarks, daysAgo, dayKey,
                tripWords, HISTORY_FILTERS, history, byDay, tripNumbers, weekly, TILE, mercator, mapFit, mapTiles, appMode, shareFor, tallyAdd, canSilence, SILENCE_MIN, NAV_REMEMBER, navTargets, navChoice, navLink, navRecent, samePoint, savedPlace, navOptions, mapCard, pinSpot, centerAt, fitBand, mapCenter, mapXY, mapLatLon, distanceM, shortPlace, maneuverKind, homeFor, navDist, navView, leadView, navZoom, nearestAt, weekShadow, weekCar, PERSONALITIES, gapMeters, duration, STALE_MS, LAT_MS, BUMP_MIN, BUMP_MAX, ACC_MIN, band, commaChecks, laneText, applies, speedChoices, keptSpeed, bumpMessage, passenger };
   if (typeof module === "object" && module.exports) module.exports = root.LPL;
 })(typeof window === "object" ? window : globalThis);

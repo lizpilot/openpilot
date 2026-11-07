@@ -1,0 +1,161 @@
+From 886431218ed77928629fc6e53c7e5de0e955db5f Mon Sep 17 00:00:00 2001
+From: Conrado <30303391+CPontes@users.noreply.github.com>
+Date: Sat, 7 Nov 2026 11:15:25 -0300
+Subject: [PATCH] msgq: 25 reader slots, as openpilot's msgq since commaai/msgq
+ d44b74a
+
+gomsgq v0.1.12 takes the reader slots per queue; mapd passes MSGQ_MAX_READERS (25), or the MSGQ_MAX_READERS environment
+variable for an older msgq (15). With 15 on our side and 25 on openpilot's the queue header is 240 bytes off: openpilot never
+reads mapdOut, and mapd reads its inputs from the wrong place (LizPilot MAP-01/MAP-02).
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ cereal/publisher.go    |  2 +-
+ cereal/subscriber.go   |  2 +-
+ docs/integration.md    |  6 ++++++
+ go.mod                 |  2 +-
+ go.sum                 |  4 ++--
+ settings/const.go      | 16 ++++++++++++++++
+ settings/const_test.go | 27 +++++++++++++++++++++++++++
+ 7 files changed, 54 insertions(+), 5 deletions(-)
+ create mode 100644 settings/const_test.go
+
+diff --git a/cereal/publisher.go b/cereal/publisher.go
+index 1394630..cde285e 100644
+--- a/cereal/publisher.go
++++ b/cereal/publisher.go
+@@ -125,7 +125,7 @@ func (p *Publisher[T]) autoPublishLoop(rate time.Duration) {
+ 
+ func NewPublisher[T any](name string, creator MessageCreator[T]) (publisher Publisher[T]) {
+ 	msgq := gomsgq.Msgq{}
+-	err := msgq.Init(name, settings.GetSegmentSize(name))
++	err := msgq.Init(name, settings.GetSegmentSize(name), settings.GetMaxReaders())
+ 	if err != nil {
+ 		panic(err)
+ 	}
+diff --git a/cereal/subscriber.go b/cereal/subscriber.go
+index 7d68ccb..637388d 100644
+--- a/cereal/subscriber.go
++++ b/cereal/subscriber.go
+@@ -43,7 +43,7 @@ func (s *Subscriber[T]) Read() (obj T, success bool) {
+ 
+ func NewSubscriber[T any](name string, reader Reader[T], conflate bool, shadow bool) (subscriber Subscriber[T]) {
+ 	msgq := gomsgq.Msgq{}
+-	err := msgq.Init(name, settings.GetSegmentSize(name))
++	err := msgq.Init(name, settings.GetSegmentSize(name), settings.GetMaxReaders())
+ 	if err != nil {
+ 		panic(err)
+ 	}
+diff --git a/docs/integration.md b/docs/integration.md
+index 4ef8eef..1f65bc3 100644
+--- a/docs/integration.md
++++ b/docs/integration.md
+@@ -35,6 +35,12 @@
+ 7. ssh into the comma device with a running mapd instance and run
+    `./selfdrive/mapd i` to download maps and configure mapd.
+ 
++### msgq reader slots
++mapd opens every queue with `MSGQ_MAX_READERS` reader slots (25, `settings/const.go`), the `NUM_READERS` of openpilot's
++`msgq/msgq.h` since commaai/msgq d44b74a. The queue header layout depends on it: with a different number on each side the
++header is 240 bytes off, openpilot never reads `mapdOut`, and mapd reads its inputs from the wrong place. For an openpilot
++whose msgq still has 15 slots, start mapd with the environment variable `MSGQ_MAX_READERS=15`.
++
+ ## Advanced
+ mapd offers a lot more data and options to allow for customization of behavior
+ outside of the basic example above as well as outputs for use in the openpilot
+diff --git a/go.mod b/go.mod
+index 03873f0..633053d 100644
+--- a/go.mod
++++ b/go.mod
+@@ -11,7 +11,7 @@ require (
+ 	github.com/gofrs/flock v0.13.0
+ 	github.com/paulmach/orb v0.1.3
+ 	github.com/paulmach/osm v0.8.0
+-	github.com/pfeiferj/gomsgq v0.1.11
++	github.com/pfeiferj/gomsgq v0.1.12
+ 	github.com/pkg/errors v0.9.1
+ 	github.com/urfave/cli/v3 v3.5.0
+ )
+diff --git a/go.sum b/go.sum
+index 4c17ae9..46aea31 100644
+--- a/go.sum
++++ b/go.sum
+@@ -61,8 +61,8 @@ github.com/paulmach/osm v0.8.0 h1:vHxgnljlCUTr8TnPYdL1nmJNeDs9DsFi3s/F5URJ4vg=
+ github.com/paulmach/osm v0.8.0/go.mod h1:p3mtw8ytr+f/YmaZQrJCSz/eQMJmQkDTx+sUaRFE+8U=
+ github.com/paulmach/protoscan v0.2.1 h1:rM0FpcTjUMvPUNk2BhPJrreDKetq43ChnL+x1sRg8O8=
+ github.com/paulmach/protoscan v0.2.1/go.mod h1:SpcSwydNLrxUGSDvXvO0P7g7AuhJ7lcKfDlhJCDw2gY=
+-github.com/pfeiferj/gomsgq v0.1.11 h1:2Oe7sh6zW9bqXnxhnnz0wcQrbwBvUM92si1E6ID5ky4=
+-github.com/pfeiferj/gomsgq v0.1.11/go.mod h1:egKAzaiP4IwQ4rk+G/P7k7LZ0DXwtOx4bDocuOBrhQU=
++github.com/pfeiferj/gomsgq v0.1.12 h1:2UR0Oxz5sWJwUrNtJP9pgpKXKUbhq7pNZM4QUQd1MYY=
++github.com/pfeiferj/gomsgq v0.1.12/go.mod h1:egKAzaiP4IwQ4rk+G/P7k7LZ0DXwtOx4bDocuOBrhQU=
+ github.com/philhofer/fwd v1.1.2 h1:bnDivRJ1EWPjUIRXV5KfORO897HTbpFAQddBdE8t7Gw=
+ github.com/philhofer/fwd v1.1.2/go.mod h1:qkPdfjR2SIEbspLqpe1tO4n5yICnr2DY7mqEx2tUTP0=
+ github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
+diff --git a/settings/const.go b/settings/const.go
+index b50c0d5..e46ab34 100644
+--- a/settings/const.go
++++ b/settings/const.go
+@@ -3,11 +3,27 @@ package settings
+ import (
+ 	_ "embed"
+ 	"math"
++	"os"
++	"strconv"
+ 	"time"
+ 
+ 	"github.com/pfeiferj/gomsgq"
+ )
+ 
++// MSGQ_MAX_READERS is the reader slots of openpilot's msgq queues (NUM_READERS in msgq/msgq.h). commaai/msgq d44b74a
++// (2026-09-06) raised it from 15 to 25. The queue header layout depends on it: with a different number on each side the
++// header is 240 bytes off and openpilot never reads a message of ours, nor we one of its.
++const MSGQ_MAX_READERS = 25
++
++// GetMaxReaders returns MSGQ_MAX_READERS, or the MSGQ_MAX_READERS environment variable when it holds a positive number
++// (15 for a msgq older than d44b74a).
++func GetMaxReaders() int64 {
++	if v, err := strconv.ParseInt(os.Getenv("MSGQ_MAX_READERS"), 10, 64); err == nil && v > 0 && v <= 1024 {
++		return v
++	}
++	return MSGQ_MAX_READERS
++}
++
+ const (
+ 	// Queue sizes matching openpilot's services.py
+ 	QUEUE_SIZE_LEGACY    = 10 * 1024 * 1024 // 10MB - Used by all services in previous versions of msgq/openpilot
+diff --git a/settings/const_test.go b/settings/const_test.go
+new file mode 100644
+index 0000000..d2e1cd7
+--- /dev/null
++++ b/settings/const_test.go
+@@ -0,0 +1,27 @@
++package settings
++
++import "testing"
++
++func TestGetMaxReaders(t *testing.T) {
++	cases := []struct {
++		env  string
++		want int64
++	}{
++		{"", MSGQ_MAX_READERS}, // openpilot's msgq since d44b74a: 25
++		{"15", 15},             // a msgq older than d44b74a
++		{"25", 25},
++		{"0", MSGQ_MAX_READERS},
++		{"-3", MSGQ_MAX_READERS},
++		{"abc", MSGQ_MAX_READERS},
++		{"5000", MSGQ_MAX_READERS},
++	}
++	for _, c := range cases {
++		t.Setenv("MSGQ_MAX_READERS", c.env)
++		if got := GetMaxReaders(); got != c.want {
++			t.Errorf("MSGQ_MAX_READERS=%q: got %d, want %d", c.env, got, c.want)
++		}
++	}
++	if MSGQ_MAX_READERS != 25 {
++		t.Errorf("MSGQ_MAX_READERS is %d: openpilot's msgq/msgq.h has NUM_READERS 25", MSGQ_MAX_READERS)
++	}
++}
+-- 
+2.50.1 (Apple Git-155)
+

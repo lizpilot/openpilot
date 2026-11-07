@@ -1,3 +1,4 @@
+import ast
 from pathlib import Path
 
 from openpilot.cereal import log
@@ -192,7 +193,10 @@ def test_attentive_needs_the_camera_seeing_the_driver():
 def test_the_phone_panel_never_counts_as_a_driving_process():
   # selfdrived doesn't import on every machine, and this line decides if a dead panel disengages the car
   source = (Path(__file__).parents[1] / "selfdrived.py").read_text()
-  assert 'NON_DRIVING_PROCESSES = {"hexaweb"}' in source
+  # the set may grow (mapd joined it in CRUISE-03): what must hold is the panel staying in it
+  sets = [ast.literal_eval(node.value) for node in ast.parse(source).body
+          if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "NON_DRIVING_PROCESSES" for t in node.targets)]
+  assert len(sets) == 1 and "hexaweb" in sets[0]
   assert "if not p.running and p.shouldBeRunning} - NON_DRIVING_PROCESSES" in source
 
 
