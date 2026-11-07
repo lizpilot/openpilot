@@ -1178,6 +1178,12 @@
  "Apaga só a cópia deste celular. No comma fica tudo, e ele manda de novo na próxima vez.": "Erases only this phone's copy. Everything stays on the comma, and it sends it again next time.",
  "Apagar dados deste celular": "Erase this phone's data",
  "Apagar viagens, marcas e Missões guardadas neste celular? No comma fica tudo.": "Erase the drives, marks and Missions kept on this phone? Everything stays on the comma.",
+ "Este comma não reconhece este celular": "This comma doesn't know this phone",
+ "Pode ser outro comma no mesmo endereço, ou este comma esqueceu o celular. Nada foi apagado: o que está guardado aqui continua, só leitura.": "It may be another comma at the same address, or this comma forgot the phone. Nothing was erased: what is kept here stays, read only.",
+ "Apagar e parear de novo": "Erase and pair again",
+ "Este comma não reconhece este celular: só leitura.": "This comma doesn't know this phone: read only.",
+ "não reconhece este celular": "doesn't know this phone",
+ "Apagar viagens, marcas e Missões guardadas neste celular e parear de novo? No comma fica tudo.": "Erase the drives, marks and Missions kept on this phone and pair again? Everything stays on the comma.",
  "Dados deste celular apagados.": "This phone's data was erased.",
  "Dados neste celular": "Data on this phone",
  "Esta cópia fica presa a este endereço. Se o endereço do comma mudar, ela some: abra pelo lizpilot.local.": "This copy is tied to this address. If the comma's address changes, it is gone: open it through lizpilot.local.",
@@ -1937,5 +1943,13 @@
  "Andando, abrir o Mapa pergunta uma vez por viagem se é o passageiro": "While moving, opening the Map asks once per drive whether you are the passenger",
  "«Rever viagem» no visual do Início: quem dirigiu em três cores, e as marcas e os desengates com a hora": "«Review drive» looks like Home: who drove in three colours, and the marks and disengagements with the time",
  "Trilha nova «Calibragem do veículo»: o que o comma aprendeu do carro (câmera, direção, torque, rodas × GPS) se marca pelo log": "New trail «Vehicle calibration»: what the comma learned of the car (camera, steering, torque, wheels × GPS) ticks from the log",
- "O comma responde ao app do LizPilot se é o comma daquele celular, sem mandar o token; nada muda ao dirigir": "The comma tells the LizPilot app whether it is that phone's comma, without sending the token; nothing changes while driving"
+ "O comma responde ao app do LizPilot se é o comma daquele celular, sem mandar o token; nada muda ao dirigir": "The comma tells the LizPilot app whether it is that phone's comma, without sending the token; nothing changes while driving",
+ "O mapd refeito para o limite da via, e nada se apaga sem perguntar": "The mapd rebuilt for the road limit, and nothing erased without asking",
+ "Limite da via pelo mapa: o mapd foi refeito para conversar com o openpilot de hoje; o anterior rodava, mas o limite não chegava ao openpilot": "Road limit from the map: mapd was rebuilt to talk to today's openpilot; the old one ran, but the limit didn't reach openpilot",
+ "Depois de atualizar, num Wi-Fi e sem o carro ligado, ponha o «limite da via pelo mapa» em «mostrar» ou «avisar»": "After updating, on Wi-Fi and with the car off, set the «road speed limit from the map» to «show» or «warn»",
+ "Então toque em «Instalar o mapd», uma vez; até lá, o limite não aparece": "Then tap «Install mapd», once; until then, the limit doesn't show",
+ "Com o limite chegando, «ajustar» pode mudar a velocidade do ACC: comece por «mostrar» ou «avisar»": "With the limit arriving, «adjust» can change the ACC's speed: start with «show» or «warn»",
+ "Se o comma no endereço não reconhece este celular, o celular pergunta antes de apagar o histórico e o pareamento; nada muda ao dirigir": "If the comma at the address doesn't recognise this phone, the phone asks before erasing the history and the pairing; nothing changes while driving",
+ "Na edição para todos os carros, a tela Software do comma só oferece a branch lizpilot; no Haval, nada muda": "In the edition for every car, the comma's Software screen offers only the lizpilot branch; nothing changes on the Haval",
+ "Os testes usam lugares públicos, e o teste que mantém o painel fora dos processos de dirigir voltou a passar; nada muda ao dirigir": "The tests use public places, and the test that keeps the panel out of the driving processes passes again; nothing changes while driving"
 }

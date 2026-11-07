@@ -5,6 +5,7 @@ from enum import IntEnum
 from collections.abc import Callable
 
 from openpilot.common.time_helpers import system_time_valid
+from openpilot.selfdrive.hexa import updates as hexa_updates
 from openpilot.selfdrive.ui.mici.layouts.settings.device.device_layout import EngagedConfirmationButton
 from openpilot.selfdrive.ui.mici.widgets.info import InfoLayoutMici
 from openpilot.selfdrive.ui.mici.widgets.button import BigButton
@@ -198,7 +199,7 @@ class BranchSelectPage(NavScroller):
     params = ui_state.params
     current_git_branch = params.get("GitBranch") or ""
     branches_str = params.get("UpdaterAvailableBranches") or ""
-    branches = [b for b in branches_str.split(",") if b]
+    branches = hexa_updates.comma_branches(branches_str)  # LizPilot: the generic edition lists only what it offers (LIZ-04)
 
     for b in [current_git_branch, "devel-staging", "devel", "nightly", "nightly-dev", "master"]:
       if b in branches:
@@ -233,7 +234,7 @@ class TargetBranchButton(BigButton):
       self.set_value(target)
 
   def _on_click(self):
-    if not ui_state.params.get("UpdaterAvailableBranches"):
+    if not hexa_updates.comma_branches(ui_state.params.get("UpdaterAvailableBranches")):
       gui_app.push_widget(BigDialog("", tr("Failed to get available branches. Ensure you're connected to the internet and try again.")))
       return
     gui_app.push_widget(BranchSelectPage(self._on_select))

@@ -21,7 +21,7 @@ PRINTS = [
    "error": "ssl.SSLCertVerificationError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate is not yet valid"},
   {"t": NOW - 25 * 86400 + 5, "process": "manage_athenad", "msg": "Failed to fetch pairing provider: System time is not valid", "error": ""},
   {"t": NOW - 25 * 86400 + 40, "process": "controlsd", "msg": "something real right after boot", "error": "ValueError: bad"},
-  {"t": NOW - 10, "process": "selfdrived", "msg": f"car {VIN} at -22.90680, -43.17290 from 192.168.1.23 by dono@example.com serial {SERIAL}",
+  {"t": NOW - 10, "process": "selfdrived", "msg": f"car {VIN} at -25.44291, -49.23972 from 192.168.1.23 by dono@example.com serial {SERIAL}",
    "error": f"RuntimeError: route {ROUTE}--12 in /data/media/0/realdata/{ROUTE}--12"},
 ]
 
@@ -37,7 +37,7 @@ def health(errors=PRINTS):
   ("2026-10-12--04-36-11--3", "<rota>"),
   (f"dongle {DONGLE}", "dongle <id>"),
   (f"vin {VIN}.", "vin <vin>."),
-  ("at -22.90680, -43.17290 now", "at <posição> now"),
+  ("at -25.44291, -49.23972 now", "at <posição> now"),
   ("from 192.168.1.23:443", "from <ip>:443"),
   ("mail dono@example.com", "mail <email>"),
   ("wss://athena.comma.ai/ws/v2/abc?token=xyz closed", "wss://athena.comma.ai/… closed"),
@@ -84,7 +84,7 @@ def test_the_package_has_no_dongle_serial_vin_gps_nor_route(tmp_path):
   rep = report.build(w.store, health(), "h6gt", NOW)
   data = report.encode(rep)
   text = data.decode()
-  for secret in (DONGLE, SERIAL, SERIAL.upper(), VIN, ROUTE, "realdata", "-22.9068", "-43.1729", "192.168", "dono@example.com", "token="):
+  for secret in (DONGLE, SERIAL, SERIAL.upper(), VIN, ROUTE, "realdata", "-25.4429", "-49.2397", "192.168", "dono@example.com", "token="):
     assert secret not in text, secret
   report.check(w.store, data)  # and the last look agrees
   assert rep["software"] == {"edition": "h6gt", "branch": "h6gt", "commit": "0123456789ab", "version": "0.10.1"}

@@ -2,6 +2,7 @@ import subprocess
 import time
 import datetime
 from openpilot.common.time_helpers import system_time_valid
+from openpilot.selfdrive.hexa import updates as hexa_updates
 from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.ui.lib.application import gui_app
 from openpilot.system.ui.lib.multilang import tr, trn
@@ -182,7 +183,7 @@ class SoftwareLayout(Widget):
     # Get available branches and order
     current_git_branch = ui_state.params.get("GitBranch") or ""
     branches_str = ui_state.params.get("UpdaterAvailableBranches") or ""
-    branches = [b for b in branches_str.split(",") if b]
+    branches = hexa_updates.comma_branches(branches_str)  # LizPilot: the generic edition lists only what it offers (LIZ-04)
 
     for b in [current_git_branch, "devel-staging", "devel", "nightly", "nightly-dev", "master"]:
       if b in branches:

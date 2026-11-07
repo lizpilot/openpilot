@@ -31,8 +31,8 @@ NITEROI = (-22.8832, -43.1036)
 
 
 @pytest.mark.parametrize("text, expected", [
-  ("-22.9068, -43.1729", (-22.9068, -43.1729)),
-  ("-22.9068;-43.1729", (-22.9068, -43.1729)),
+  ("-25.4103, -49.2675", (-25.4103, -49.2675)),
+  ("-25.4103;-49.2675", (-25.4103, -49.2675)),
   ("https://www.google.com/maps/@-22.9519,-43.2105,15z", (-22.9519, -43.2105)),
   ("https://www.google.com/maps/place/Cristo+Redentor/@-22.9519,-43.2129,17z/data=!3m1!4b1!4m6!3m5!1s0x0:0x0!8m2!3d-22.951916!4d-43.210487",
    (-22.9519, -43.2129)),
@@ -56,7 +56,7 @@ class World:
     self.t = 100.
     self.urls = []
     self.results = results if results is not None else [
-      {"lat": "-22.9035", "lon": "-43.1092", "display_name": "Praia de Icaraí, Niterói, Rio de Janeiro, Brasil"},
+      {"lat": "-25.4429", "lon": "-49.2397", "display_name": "Jardim Botânico, Curitiba, Paraná, Brasil"},
       {"lat": "nope", "lon": "x", "display_name": "broken"},
       {"lat": "0", "lon": "0", "display_name": "null island"},
     ]
@@ -73,11 +73,11 @@ class World:
 
 def test_search_near_the_car_in_brazil_and_cleans_the_answer():
   w = World()
-  out = w.nav.search("  praia de icaraí  ")
-  assert out == [{"name": "Praia de Icaraí, Niterói, Rio de Janeiro, Brasil", "latitude": -22.9035, "longitude": -43.1092}]
+  out = w.nav.search("  jardim botânico  ")
+  assert out == [{"name": "Jardim Botânico, Curitiba, Paraná, Brasil", "latitude": -25.4429, "longitude": -49.2397}]
   q = parse_qs(urlparse(w.urls[0]).query)
   assert urlparse(w.urls[0]).netloc == "nominatim.openstreetmap.org"
-  assert q["q"] == ["praia de icaraí"] and q["countrycodes"] == ["br"] and q["limit"] == ["5"]
+  assert q["q"] == ["jardim botânico"] and q["countrycodes"] == ["br"] and q["limit"] == ["5"]
   lon0, lat0, lon1, lat1 = map(float, q["viewbox"][0].split(","))
   assert lon0 < NITEROI[1] < lon1 and lat1 < NITEROI[0] < lat0
 
@@ -113,8 +113,8 @@ def test_search_without_gps_has_no_viewbox():
 
 def test_go_writes_openpilots_destination_and_stop_clears_it():
   w = World()
-  dest = w.nav.go(-22.9035, -43.1092, "Icaraí\x1b[31m")
-  assert w.store.get("NavDestination") == dest == {"latitude": -22.9035, "longitude": -43.1092, "place_name": "Icaraí[31m"}
+  dest = w.nav.go(-25.4429, -49.2397, "Jardim\x1b[31m")
+  assert w.store.get("NavDestination") == dest == {"latitude": -25.4429, "longitude": -49.2397, "place_name": "Jardim[31m"}
   assert w.nav.destination() == dest
   w.nav.stop()
   assert w.store.get("NavDestination") is None and w.nav.destination() is None
