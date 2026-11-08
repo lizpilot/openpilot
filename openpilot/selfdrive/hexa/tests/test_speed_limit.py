@@ -256,7 +256,7 @@ def test_what_is_logged():
 
 def test_mapd_runs_niced_on_two_cores_and_the_alert_yields_to_the_radar():
   pc = (REPO / "openpilot/system/manager/process_config.py").read_text()
-  assert '["nice", "-n", "10", "env", "GOMAXPROCS=2", "./mapd"]' in pc
+  assert '["nice", "-n", "10", "env", "GOMAXPROCS=2", "USE_MSGQ_PREFIX=true", "./mapd"]' in pc  # the prefixed msgq: MAP-04
   ev = (REPO / "openpilot/selfdrive/selfdrived/events.py").read_text()
   assert "Priority.LOWEST, VisualAlert.none, AudibleAlert.prompt, 3.)  # under the radar's" in ev
 

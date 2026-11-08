@@ -20,7 +20,14 @@ class Release:
 
 
 RELEASES: tuple[Release, ...] = (
-  Release("", "07/11", "9fe1215", "O mapd refeito para o limite da via, e nada se apaga sem perguntar",
+  Release("", "07/11", "9fe1215", "Instalar o mapd e baixar o mapa, vendo até o fim",
+          ("Instalar o mapd: o celular diz «instalando», depois «instalado» com a versão, ou o motivo de não instalar",
+           "Baixar o mapa: «baixando X de Y partes», depois «pronto» com a região e a data, guardadas no comma",
+           "Se o download parar, o celular diz por quê: o carro ligou, você cancelou, a rede caiu, falta espaço ou faltaram partes",
+           "Sem notícia do comma, o celular diz «o comma não respondeu» e oferece tentar de novo",
+           "Botão novo «Parar o download»; nada muda ao dirigir"),
+          driving=False),
+  Release("ba07d56", "07/11", "9fe1215", "O mapd refeito para o limite da via, e nada se apaga sem perguntar",
           ("Limite da via pelo mapa: o mapd foi refeito para conversar com o openpilot de hoje; o anterior rodava, mas o limite não chegava ao openpilot",
            "Depois de atualizar, num Wi-Fi e sem o carro ligado, ponha o «limite da via pelo mapa» em «mostrar» ou «avisar»",
            "Então toque em «Instalar o mapd», uma vez; até lá, o limite não aparece",

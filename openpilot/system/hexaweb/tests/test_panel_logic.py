@@ -1600,3 +1600,87 @@ def test_navegar_only_reads_and_the_streets_need_the_option():
   assert 'class="hidden" data-home="navegar"' in seg  # shown by renderNav only with a destination
   nav = html[html.index("function renderNav()"):html.index("function mapHome()")]
   assert 'if (homePane === "navegar" && !dest) { showHome("painel"); return; }' in nav
+
+
+# *** UI-19: the road's limit card, from the tap to the end ***
+
+LIMIT_AREAS = [{"key": "br_state.RJ", "name": "Rio de Janeiro (estado)"}, {"key": "nation.BR", "name": "Brasil inteiro"}]
+READY_AT = 1794052800  # 07/11/2026, midday UTC: the same day in any time zone of the Americas
+
+
+def limit_state(**kw):
+  s = {"option": 1, "installed": True, "version": "8e5eee6-msgq25", "areas": LIMIT_AREAS, "fresh": False, "saved": [],
+       "job": {"busy": False, "error": "", "ok": False}, "map": {"state": "idle", "area": "", "done": 0, "total": 0, "reason": "", "error": ""}}
+  s.update(kw)
+  return s
+
+
+def limit_map(**kw):
+  return {"state": "idle", "area": "br_state.RJ", "done": 0, "total": 0, "reason": "", "error": "", **kw}
+
+
+def test_limit_card_installing_installed_or_why_not():
+  assert run("limitCard", limit_state(option=0), "pt-BR") == {"lines": [], "actions": []}
+  c = run("limitCard", limit_state(installed=False, job={"busy": True, "error": "", "ok": False}), "pt-BR")
+  assert c == {"lines": [{"text": "Instalando o mapd…", "vars": {}}], "actions": []}
+  c = run("limitCard", limit_state(installed=False, job={"busy": False, "error": "Só com o carro desligado.", "ok": False}), "pt-BR")
+  assert c["lines"][0] == {"text": "Não instalou: {motivo}", "vars": {"motivo": "Só com o carro desligado."}}
+  assert c["actions"] == [{"kind": "install", "label": "Tentar de novo"}]
+  c = run("limitCard", limit_state(installed=False), "pt-BR")
+  assert [x["text"] for x in c["lines"]] == ["Falta instalar o mapd, o programa que lê o mapa (uma vez, num Wi-Fi)."]
+  assert c["actions"] == [{"kind": "install", "label": "Instalar o mapd"}]
+  c = run("limitCard", limit_state(), "pt-BR")
+  assert c["lines"][0] == {"text": "mapd {v} instalado e conferido.", "vars": {"v": "8e5eee6-msgq25"}}
+  assert c["lines"][1]["text"] == "Baixe o mapa da sua região. Depois, o limite aparece na tela de dirigir."
+  both = [("download", "br_state.RJ", "Baixar: {regiao}"), ("download", "nation.BR", "Baixar: {regiao}")]
+  assert [(a["kind"], a["area"], a["label"]) for a in c["actions"]] == both
+  assert run("limitBusy", limit_state(installed=False, job={"busy": True})) is True and run("limitBusy", limit_state()) is False
+
+
+def test_limit_card_download_from_the_tap_to_ready():
+  c = run("limitCard", limit_state(map=limit_map(state="asked")), "pt-BR")
+  assert c["lines"][1] == {"text": "Pedindo o mapa de {regiao} ao comma…", "vars": {"regiao": "Rio de Janeiro (estado)"}}
+  assert c["actions"] == [{"kind": "stop", "label": "Parar o download"}]
+  c = run("limitCard", limit_state(map=limit_map(state="downloading", done=3, total=40)), "pt-BR")
+  assert c["lines"][1] == {"text": "Baixando {regiao}: {f} de {n} partes.", "vars": {"regiao": "Rio de Janeiro (estado)", "f": 3, "n": 40}}
+  assert c["actions"] == [{"kind": "stop", "label": "Parar o download"}] and len(c["lines"]) == 2
+  assert run("limitBusy", limit_state(map=limit_map(state="downloading"))) is True
+  saved = [{"area": "br_state.RJ", "date": READY_AT, "files": 40}]
+  c = run("limitCard", limit_state(map=limit_map(state="done", done=40, total=40), saved=saved), "pt-BR")
+  assert c["lines"][1] == {"text": "Pronto: {regiao}, baixado em {data}.", "vars": {"regiao": "Rio de Janeiro (estado)", "data": "07/11/2026"}}
+  assert len(c["lines"]) == 2 and [a["area"] for a in c["actions"]] == ["br_state.RJ", "nation.BR"]
+  # closed and opened again (the job is idle in a new panel process): the map, the area and the date are still said
+  again = run("limitCard", limit_state(saved=saved), "pt-BR")
+  assert again["lines"] == c["lines"] and run("limitBusy", limit_state(saved=saved)) is False
+  here = run("limitCard", limit_state(saved=saved, fresh=True, tile=True, limit=60), "pt-BR")
+  assert here["lines"][-1] == {"text": "Aqui: {v} km/h.", "vars": {"v": 60}}
+
+
+def test_limit_card_says_why_it_stopped_or_that_the_comma_didnt_answer():
+  why = {"car": "Parou: o carro ligou, {f} de {n} partes. Com o carro desligado, baixe de novo.",
+         "you": "Parou: você cancelou, {f} de {n} partes.",
+         "network": "Parou: a rede caiu, {f} de {n} partes. Num Wi-Fi, baixe de novo para completar.",
+         "space": "Parou: falta espaço no comma, {f} de {n} partes.",
+         "partial": "Parou: {f} de {n} partes baixaram. Baixe de novo para completar.",
+         "?": "Parou: {f} de {n} partes baixaram. Baixe de novo para completar."}
+  retry = [("download", "br_state.RJ", "Tentar de novo"), ("download", "nation.BR", "Baixar: {regiao}")]
+  for reason, text in why.items():
+    c = run("limitCard", limit_state(map=limit_map(state="stopped", reason=reason, done=12, total=40)), "pt-BR")
+    assert c["lines"][1:] == [{"text": text, "vars": {"f": 12, "n": 40}}], reason
+    assert [(a["kind"], a["area"], a["label"]) for a in c["actions"]] == retry
+  c = run("limitCard", limit_state(map=limit_map(state="silent", reason="start")), "pt-BR")
+  assert c["lines"][1]["text"] == "O comma não respondeu: o download de {regiao} não começou."
+  assert [(a["kind"], a["area"], a["label"]) for a in c["actions"]] == retry
+  c = run("limitCard", limit_state(map=limit_map(state="silent", reason="middle", done=7, total=40)), "pt-BR")
+  assert c["lines"][1] == {"text": "O comma parou de dar notícia do download de {regiao}, em {f} de {n} partes.",
+                           "vars": {"regiao": "Rio de Janeiro (estado)", "f": 7, "n": 40}}
+  c = run("limitCard", limit_state(map=limit_map(state="refused", area="nation.BR", error="Falta espaço no comma para o mapa desta região.")), "pt-BR")
+  assert c["lines"][1:] == [{"text": "Não começou: {motivo}", "vars": {"motivo": "Falta espaço no comma para o mapa desta região."}}]
+  assert [(a["area"], a["label"]) for a in c["actions"]] == [("nation.BR", "Tentar de novo"), ("br_state.RJ", "Baixar: {regiao}")]
+
+
+def test_the_limit_card_draws_what_limit_card_says():
+  html = (Path(LOGIC).parent / "index.html").read_text()
+  js = html[html.index("function renderLimit()"):html.index("// ----- ", html.index("function renderLimit()"))]
+  assert "LPL.limitCard(s, L())" in js and '"/api/limit/cancel"' in js and "Instalando" not in js  # the words live in lp-logic.js
+  assert "LPL.limitBusy(limitState)" in html  # every tick while installing or downloading, not every third
