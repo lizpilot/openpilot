@@ -1672,7 +1672,7 @@ function refreshHome(full) {
   const pane = LPL.homeFor(homePane, { hasRoute: navState ? !!navState.destination : null, driving, wasDriving: homeWasDriving });
   if (pane !== homePane) showHome(pane);
   homeWasDriving = driving;
-  if (!driving && (full || ticks % 3 === 0)) refreshLimit();
+  if (!driving && (full || ticks % 3 === 0 || LPL.limitBusy(limitState))) refreshLimit();  // every tick while installing or downloading
   $("garage").classList.toggle("hidden", driving);
   $("drive").classList.toggle("hidden", !driving);
   document.body.classList.toggle("driving", driving && view === "inicio");
@@ -2747,31 +2747,22 @@ function renderLimit() {
   const s = limitState, card = $("limitCard");
   card.classList.toggle("hidden", !s || !s.option);
   if (!s || !s.option) return;
-  const job = s.job || {}, dl = s.download;
-  const lines = [];
-  if (job.busy) lines.push(t("Instalando o mapd…"));
-  else if (job.error) lines.push(t(job.error));
-  if (!s.installed) lines.push(t("Falta instalar o mapd, o programa que lê o mapa (uma vez, num Wi-Fi)."));
-  else if (dl && dl.active) lines.push(tf("Baixando o mapa: {f} de {n} partes.", { f: dl.done, n: dl.total }));
-  else if (s.fresh && s.tile) lines.push(s.limit ? tf("Aqui: {v} km/h.", { v: s.limit }) : t("Mapa carregado. Esta rua não tem limite no mapa."));
-  else lines.push(t("Baixe o mapa da sua região. Depois, o limite aparece na tela de dirigir."));
-  $("limitText").textContent = lines.join(" ");
-  const acts = [];
-  if (!s.installed && !job.busy) {
-    const b = el("button", "link", t("Instalar o mapd")); b.type = "button";
-    b.addEventListener("click", async () => { const r = await api("/api/limit/install", {}); if (r.status !== 200) toast(r.data.error || t("Não foi possível.")); setTimeout(refreshLimit, 1500); });
-    acts.push(b);
-  }
-  if (s.installed && !(dl && dl.active)) for (const a of s.areas || []) {
-    const b = el("button", "link", tf("Baixar: {regiao}", { regiao: t(a.name) })); b.type = "button";
-    b.addEventListener("click", async () => {
-      const r = await api("/api/limit/download", { area: a.key });
-      toast(r.status === 200 ? t("Baixando o mapa. Deixe o comma no Wi-Fi.") : (r.data.error || t("Não foi possível.")));
-      setTimeout(refreshLimit, 2000);
-    });
-    acts.push(b);
-  }
-  $("limitActs").replaceChildren(...acts);
+  // every state until the end (UI-19): installing, installed or why not; asking, downloading X of Y, ready with the area
+  // and the date, stopped and why, or "the comma didn't answer"
+  const c = LPL.limitCard(s, L()), words = (vars) => Object.fromEntries(Object.entries(vars || {}).map(([k, v]) => [k, k === "regiao" || k === "motivo" ? t(v) : v]));  // the version and the date stay as they are
+  $("limitText").replaceChildren(...c.lines.map((x) => el("div", "", tf(x.text, words(x.vars)))));
+  $("limitActs").replaceChildren(...c.actions.map((a) => {
+    const b = el("button", "link", tf(a.label, words(a.vars))); b.type = "button";
+    b.addEventListener("click", () => limitAct(a));
+    return b;
+  }));
+}
+async function limitAct(a) {
+  const path = a.kind === "install" ? "/api/limit/install" : a.kind === "stop" ? "/api/limit/cancel" : "/api/limit/download";
+  const r = await api(path, a.area ? { area: a.area } : {});
+  if (r.status !== 200) toast(r.data.error ? t(r.data.error) : t("Não foi possível."));
+  else if (a.kind === "download") toast(t("Baixando o mapa. Deixe o comma no Wi-Fi."));
+  refreshLimit();
 }
 
 // ----- the video of a mark: a short-lived link from the comma, played by the phone's own player -----

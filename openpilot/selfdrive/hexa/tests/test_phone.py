@@ -94,6 +94,48 @@ def test_ident_refuses_a_malformed_question():
     assert phone.ident_answer(tokens, bad_phone, bad_nonce) is None
 
 
+def test_a_car_challenge_is_good_once_and_for_a_while():  # NAV-03 step 2, Android Auto
+  now = [0.]
+  ch = phone.Challenges(lambda: now[0])
+  app = "192.168.43.20"
+  c = ch.issue(app)
+  assert phone.IDENT_NONCE.fullmatch(c)
+  assert ch.redeem(c, app) and not ch.redeem(c, app)  # once
+  late = ch.issue(app)
+  now[0] += phone.CHALLENGE_TTL_S
+  assert not ch.redeem(late, app)
+  many = [ch.issue(app) for _ in range(phone.CHALLENGE_PER_ADDRESS + 5)]  # asking in a loop: its own oldest leave
+  assert not ch.redeem(many[0], app) and ch.redeem(many[-1], app)
+  assert not ch.redeem(None, app) and not ch.redeem("", app) and not ch.redeem("x" * 22, app)
+
+
+def test_another_device_can_neither_push_out_nor_use_up_the_apps_challenge():  # CTO review of navcel-02, item 3
+  ch = phone.Challenges(lambda: 0.)
+  app, other = "192.168.43.20", "192.168.43.66"
+  c = ch.issue(app)
+  for _ in range(phone.CHALLENGE_KEEP):  # a whole pool's worth of asking from one other device
+    ch.issue(other)
+  assert not ch.redeem(c, other)  # handed to the app: another address can't use it up
+  assert ch.redeem(c, app)
+  for i in range(phone.CHALLENGE_KEEP // phone.CHALLENGE_PER_ADDRESS + 1):  # only many addresses at once push the oldest out
+    for _ in range(phone.CHALLENGE_PER_ADDRESS):
+      ch.issue(f"10.0.{i}.1")
+  assert len(ch._open) <= phone.CHALLENGE_KEEP
+
+
+def test_the_car_reader_is_a_protocol_of_its_own():
+  token, tokens = phone.issue_token([], "celular", now=1.0)
+  _, tokens = phone.issue_token(tokens, "outro", now=2.0)
+  h = phone.hash_token(token)
+  me, c = phone.ident_phone(h), "c" * 22
+  mac = hmac.new(h.encode(), ("lizpilot-car|v1|" + c).encode(), hashlib.sha256).hexdigest()  # written out, as the app computes it
+  assert phone.car_reader(tokens, me, c, mac)["id"] == tokens[0]["id"]
+  assert phone.car_reader(tokens, me, c, phone.ident_answer(tokens, me, c)["mac"]) is None  # /api/ident answers anyone: not here
+  assert phone.car_reader(phone.revoke_token(tokens, tokens[0]["id"]), me, c, mac) is None  # taken off the comma
+  for bad in ((me, c, mac.upper()), (me, c, mac[:63]), (me, "short", mac), ("0" * 16, c, mac), (None, c, mac), (me, c, None), (me, None, mac)):
+    assert phone.car_reader(tokens, *bad) is None
+
+
 def test_a_full_list_drops_the_phone_unused_the_longest_not_the_first_paired():
   # owner, 04/11: with 5 the phone in use fell off the list. Now 10, and the one used last stays
   tokens: list[dict] = []

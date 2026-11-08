@@ -166,6 +166,65 @@ def ident_answer(tokens: list[dict] | None, phone_id, nonce) -> dict | None:
   return {"v": 1, "mac": None}
 
 
+# *** the route on the car's screen (Android Auto, NAV-03 step 2) ***
+# The app's car part reads the route without the token: it answers a challenge the comma handed out with
+# HMAC(hash, CAR_PREFIX + challenge), hash being hash_token() of its pairing, which the app keeps (APP-02). A challenge is
+# good once and for CHALLENGE_TTL_S. Its own prefix, never IDENT_PREFIX: /api/ident answers HMAC(hash, IDENT_PREFIX + any
+# nonce) to anyone, so with one prefix for both anyone could get a valid answer by asking /api/ident with the challenge.
+CAR_PREFIX = "lizpilot-car|v1|"
+CAR_MAC = re.compile(r"[0-9a-f]{64}")
+CHALLENGE_TTL_S = 30.
+CHALLENGE_PER_ADDRESS = 4  # open challenges per asking address: one asking in a loop pushes out only its own
+CHALLENGE_KEEP = 256  # open challenges in all: 64 addresses asking in a loop, before anyone else's leaves
+
+
+def car_mac(token_hash: str, challenge: str) -> str:
+  return hmac.new(token_hash.encode(), (CAR_PREFIX + challenge).encode(), hashlib.sha256).hexdigest()
+
+
+class Challenges:
+  """The challenges the comma handed out, each tied to the address that asked and redeemed once, by that address, within
+  CHALLENGE_TTL_S. Another device of the network can neither push the app's out nor use it up (CTO review of navcel-02,
+  item 3). Not thread safe: the caller locks."""
+
+  def __init__(self, mono=time.monotonic):
+    self.mono = mono
+    self._open: dict[str, tuple[str, float]] = {}  # challenge -> (address that asked, when)
+
+  def issue(self, who: str) -> str:
+    now = self.mono()
+    self._open = {c: (w, t) for c, (w, t) in self._open.items() if now - t < CHALLENGE_TTL_S}
+    mine = [c for c, (w, _) in self._open.items() if w == who]
+    for c in mine[:max(0, len(mine) - CHALLENGE_PER_ADDRESS + 1)]:
+      self._open.pop(c)
+    while len(self._open) >= CHALLENGE_KEEP:
+      self._open.pop(next(iter(self._open)))
+    c = secrets.token_urlsafe(16)  # 22 characters of [A-Za-z0-9_-]
+    self._open[c] = (str(who), now)
+    return c
+
+  def redeem(self, challenge, who) -> bool:
+    if not isinstance(challenge, str):
+      return False
+    got = self._open.get(challenge)
+    if got is None or got[0] != who:  # never handed out, or handed to another address: that one keeps it
+      return False
+    self._open.pop(challenge)
+    return self.mono() - got[1] < CHALLENGE_TTL_S
+
+
+def car_reader(tokens: list[dict] | None, phone_id, challenge, mac) -> dict | None:
+  """The pairing whose hash answered the challenge, or None. The caller redeems the challenge first, right or wrong."""
+  if not (isinstance(phone_id, str) and IDENT_PHONE.fullmatch(phone_id) and isinstance(challenge, str) and IDENT_NONCE.fullmatch(challenge)
+          and isinstance(mac, str) and CAR_MAC.fullmatch(mac)):
+    return None
+  for entry in tokens or []:
+    h = str(entry.get("hash", ""))
+    if h and hmac.compare_digest(ident_phone(h), phone_id) and hmac.compare_digest(car_mac(h, challenge), mac):
+      return entry
+  return None
+
+
 def revoke_token(tokens: list[dict] | None, token_id: str) -> list[dict]:
   return [t for t in tokens or [] if t.get("id") != token_id]
 

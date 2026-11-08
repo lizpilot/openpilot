@@ -1154,7 +1154,60 @@
   // what "Apagar dados deste celular" takes from localStorage besides the copy: data, never the language or the view
   const DATA_KEYS = ["lpTrips", "lpMissionSnap", "lpCopEvents", "lpCopAnswers", "lpCopTally", "lpNavRecent"];  // the copilot's events of the drive, and the answers
 
+  // The road's limit card (UI-19): from the tap to the end, what happened to mapd and to the map, and why it stopped.
+  // s is /api/limit: job (installing mapd), map (the download, hexaweb.MapJob), saved (the maps downloaded whole, with
+  // the date). Lines and buttons hold Portuguese templates; the page translates them and the strings put in them.
+  const LIMIT_STOP = {
+    car: T("Parou: o carro ligou, {f} de {n} partes. Com o carro desligado, baixe de novo."),
+    you: T("Parou: você cancelou, {f} de {n} partes."),
+    network: T("Parou: a rede caiu, {f} de {n} partes. Num Wi-Fi, baixe de novo para completar."),
+    space: T("Parou: falta espaço no comma, {f} de {n} partes."),
+    partial: T("Parou: {f} de {n} partes baixaram. Baixe de novo para completar."),
+  };
+  const LIMIT_ACTIVE = ["asked", "downloading"];
+  function limitBusy(s) { return !!s && (!!(s.job && s.job.busy) || LIMIT_ACTIVE.includes((s.map || {}).state)); }
+  function limitCard(s, locale) {
+    const out = { lines: [], actions: [] };
+    if (!s || !s.option) return out;
+    const job = s.job || {}, m = s.map || {}, say = (text, vars) => out.lines.push({ text, vars: vars || {} });
+    const name = (k) => ((s.areas || []).find((a) => a.key === k) || {}).name || k;
+    if (job.busy) {
+      say(T("Instalando o mapd…"));
+      return out;
+    }
+    if (!s.installed) {
+      if (job.error) say(T("Não instalou: {motivo}"), { motivo: job.error });
+      say(T("Falta instalar o mapd, o programa que lê o mapa (uma vez, num Wi-Fi)."));
+      out.actions.push({ kind: "install", label: job.error ? T("Tentar de novo") : T("Instalar o mapd") });
+      return out;
+    }
+    say(T("mapd {v} instalado e conferido."), { v: s.version || "" });
+    const counts = { f: m.done || 0, n: m.total || 0 }, area = { regiao: name(m.area) };
+    if (m.state === "asked") say(T("Pedindo o mapa de {regiao} ao comma…"), area);
+    else if (m.state === "downloading") say(m.total ? T("Baixando {regiao}: {f} de {n} partes.") : T("Baixando {regiao}…"), Object.assign({}, area, counts));
+    else if (m.state === "silent") {
+      say(m.reason === "start" ? T("O comma não respondeu: o download de {regiao} não começou.")
+                               : T("O comma parou de dar notícia do download de {regiao}, em {f} de {n} partes."), Object.assign({}, area, counts));
+    } else if (m.state === "stopped") say(LIMIT_STOP[m.reason] || LIMIT_STOP.partial, counts);
+    else if (m.state === "refused") say(T("Não começou: {motivo}"), { motivo: m.error });
+    const saved = s.saved || [];
+    for (const r of saved) {
+      say(T("Pronto: {regiao}, baixado em {data}."), { regiao: name(r.area), data: new Date(r.date * 1000).toLocaleDateString(locale || "pt-BR") });
+    }
+    if (s.fresh && s.tile) say(s.limit ? T("Aqui: {v} km/h.") : T("Mapa carregado. Esta rua não tem limite no mapa."), { v: s.limit });
+    else if (!saved.length && (m.state || "idle") === "idle") say(T("Baixe o mapa da sua região. Depois, o limite aparece na tela de dirigir."));
+    if (LIMIT_ACTIVE.includes(m.state)) {
+      out.actions.push({ kind: "stop", label: T("Parar o download") });
+      return out;
+    }
+    if (["silent", "stopped", "refused"].includes(m.state) && m.area) out.actions.push({ kind: "download", area: m.area, label: T("Tentar de novo") });
+    for (const a of s.areas || []) {
+      if (a.key !== m.area || !["silent", "stopped", "refused"].includes(m.state)) out.actions.push({ kind: "download", area: a.key, label: T("Baixar: {regiao}"), vars: { regiao: a.name } });
+    }
+    return out;
+  }
+
   root.LPL = { approvalReport, groupPending, quietEvent, mutedKinds, EV_KINDS, eventStep, pointPassed, eventsMerge, logEvents, driveStart, reviewList, answerKeep, eventMission, copilotView, eventAge, eventStage, eventClock, EV_MISSIONS, EV_REASON, EV_LIVE_S, EV_RECENT_S, EV_KEEP, versionList, versionChips, VERSION_CHIPS, copilotMoment, copilotOrder, copilotNow, copilotGate, stopClock, tripAnswers, canTake, isRoute, routeKeys, missionHistory, missionsChecked, checkedUntil, queueAdd, applyQueue, queuedKeys, QUEUE_ACTIONS, ADVANCED, COP_LONG_S, COP_STOP_KMH, missionAuto, missionProgress, missionLevel, missionOrder, missionTrails, missionDiff, kpiOf, kpiDelta, kpis, tripVsAverage, versionCompare, kpiWeeks, KPI_BETTER, VERSION_MIN_KM, KPI_MIN_KM, WOBBLE_MIN_S, FIXED_HOST, addressPlan, tripSplit, listed, currentTrip, pathSettled, pathSecond, mergeMarks, rideClock, rideWho, applyTrips, applyWhole, since, keepPath, rideKeys, rideKeep, rideOrder, mapCount, RIDE_KEEP, readOnly, strangerAnswer, DATA_KEYS, weekTotal, totals, monthStart, versionOf, versions, idle, fold, tripStart, tripMarks, daysAgo, dayKey,
-               tripWords, HISTORY_FILTERS, history, byDay, tripNumbers, weekly, TILE, mercator, mapFit, mapTiles, appMode, shareFor, tallyAdd, canSilence, SILENCE_MIN, NAV_REMEMBER, navTargets, navChoice, navLink, navRecent, samePoint, savedPlace, navOptions, mapCard, pinSpot, centerAt, fitBand, mapCenter, mapXY, mapLatLon, distanceM, shortPlace, maneuverKind, homeFor, navDist, navView, leadView, navZoom, nearestAt, weekShadow, weekCar, PERSONALITIES, gapMeters, duration, STALE_MS, LAT_MS, BUMP_MIN, BUMP_MAX, ACC_MIN, band, commaChecks, laneText, applies, speedChoices, keptSpeed, bumpMessage, passenger };
+               tripWords, HISTORY_FILTERS, history, byDay, tripNumbers, weekly, TILE, mercator, mapFit, mapTiles, appMode, shareFor, tallyAdd, canSilence, SILENCE_MIN, NAV_REMEMBER, navTargets, navChoice, navLink, navRecent, samePoint, savedPlace, navOptions, mapCard, pinSpot, centerAt, fitBand, mapCenter, mapXY, mapLatLon, distanceM, shortPlace, maneuverKind, homeFor, navDist, navView, leadView, navZoom, nearestAt, weekShadow, weekCar, PERSONALITIES, gapMeters, duration, STALE_MS, LAT_MS, BUMP_MIN, BUMP_MAX, ACC_MIN, band, commaChecks, laneText, applies, speedChoices, keptSpeed, bumpMessage, passenger, limitCard, limitBusy, LIMIT_STOP };
   if (typeof module === "object" && module.exports) module.exports = root.LPL;
 })(typeof window === "object" ? window : globalThis);
