@@ -80,6 +80,19 @@ OPTIONS: tuple[HexaOption, ...] = (
     testing=True,
   ),
   HexaOption(
+    key="SteerReversalEase",
+    brands=edition.GWM_ONLY,
+    group="direcao",
+    title="soltar o volante aos poucos na troca de lado",
+    description="Quando o openpilot muda de ideia e passa a puxar o volante para o outro lado enquanto você ainda segura para o lado " +
+                "de antes, ele não solta a força de uma vez: ela desce no ritmo normal até zero, e só então ele solta. " +
+                "Isso tira o tranco curto nas viradas. Se você força contra o que ele pede e contra a força que ele está fazendo, " +
+                "solta na hora, como hoje.\n" +
+                "Em teste: o panda não muda.",
+    restart_needed=True,
+    testing=True,
+  ),
+  HexaOption(
     key="AlwaysOnLateral",
     brands=edition.GWM_ONLY,
     group="direcao",
