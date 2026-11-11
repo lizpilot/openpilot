@@ -135,6 +135,10 @@ class Car:
       if is_on(self.params, "SoftHandoff"):
         # a light push against the wheel fades openpilot's torque out instead of cutting it; the panda doesn't change
         self.CP.flags |= GwmFlags.SOFT_HANDOFF.value
+      if is_on(self.params, "SteerReversalEase"):
+        # in a reversal, with the driver against the request but with the torque going out, the torque comes down instead
+        # of dropping (LAT-01); the panda doesn't change
+        self.CP.flags |= GwmFlags.OPPOSE_BOTH.value
 
     if self.CP.secOcRequired:
       # Copy user key if available
