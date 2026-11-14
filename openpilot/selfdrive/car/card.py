@@ -139,6 +139,10 @@ class Car:
         # in a reversal, with the driver against the request but with the torque going out, the torque comes down instead
         # of dropping (LAT-01); the panda doesn't change
         self.CP.flags |= GwmFlags.OPPOSE_BOTH.value
+      if is_on(self.params, "GasTouchHold"):
+        # stopped and held by us, back from a touch of the gas with the car never moving: the stock hold at once and no frame
+        # of gas (LONG-06); the panda doesn't change
+        self.CP.flags |= GwmFlags.GAS_TOUCH_HOLD.value
 
     if self.CP.secOcRequired:
       # Copy user key if available
