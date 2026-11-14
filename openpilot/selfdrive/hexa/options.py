@@ -195,6 +195,19 @@ OPTIONS: tuple[HexaOption, ...] = (
     testing=True,
   ),
   HexaOption(
+    key="GasTouchHold",
+    brands=edition.GWM_ONLY,
+    group="velocidade",
+    title="segurar parado depois de um toque no acelerador",
+    description="Parado e seguro pelo comma, se você encosta de leve no acelerador e tira o pé sem o carro andar, o comma volta a " +
+                "segurar na hora, com a força de parada da Haval, em vez de recomeçar do zero.\n" +
+                "Não cobre o toque firme no acelerador nem a alavanca puxada com o carro parado: aí a Haval solta o freio e o comma " +
+                "não consegue segurar de novo. Se o carro não sair, pé no freio.\n" +
+                "Em teste: o panda não muda. Precisa do longitudinal do comma.",
+    restart_needed=True,
+    testing=True,
+  ),
+  HexaOption(
     key="StopCloser",
     brands=edition.GWM_ONLY,
     group="velocidade",
